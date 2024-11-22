@@ -1,0 +1,14 @@
+{
+    "token": "90934431|-31949230444276214|90956823",
+    "cmd": "PUT",
+    "dbName": "newStudents",
+    "rel": "newStudent-Rel",
+    "jsonStr": {
+    "Roll_No": 1,
+    "Full_Name": "Alice P Johnson",
+    "Class": "11",
+    "Birth_Date": "2005-08-15",
+    "Address": "789 Pine St",
+    "Enrollment_Date": "2021-08-01"
+   }
+}
