@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Student Management Form</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <style>
+        .disabled {
+            pointer-events: none;
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Student Management Form</h2>
+    <form id="studentForm" method="post">
+        <div class="form-group">
+            <label for="rollNo">Roll Number (Primary Key):</label>
+            <input type="text" class="form-control" id="rollNo" placeholder="Enter Roll Number" onblur="checkPrimaryKey()" required>
+        </div>
+        <div class="form-group">
+            <label for="fullName">Full Name:</label>
+            <input type="text" class="form-control disabled" id="fullName" placeholder="Enter Full Name" disabled>
+        </div>
+        <div class="form-group">
+            <label for="class">Class:</label>
+            <input type="text" class="form-control disabled" id="class" placeholder="Enter Class" disabled>
+        </div>
+        <div class="form-group">
+            <label for="birthDate">Birth Date:</label>
+            <input type="date" class="form-control disabled" id="birthDate" disabled>
+        </div>
+        <div class="form-group">
+            <label for="address">Address:</label>
+            <input type="text" class="form-control disabled" id="address" placeholder="Enter Address" disabled>
+        </div>
+        <div class="form-group">
+            <label for="enrollmentDate">Enrollment Date:</label>
+            <input type="date" class="form-control disabled" id="enrollmentDate" disabled>
+        </div>
+        <button type="button" class="btn btn-primary" id="saveBtn" onclick="saveRecord()" disabled>Save</button>
+        <button type="button" class="btn btn-warning" id="updateBtn" onclick="updateRecord()" disabled>Update</button>
+        <button type="button" class="btn btn-secondary" id="resetBtn" onclick="resetForm()" disabled>Reset</button>
+    </form>
+</div>
+
+<script>
+    const baseUrl = "http://api.login2explore.com:5577/api/irl";
+    const token = "90934431|-31949230444276214|90956823";
+
+    function resetForm() {
+    $("#studentForm")[0].reset();
+    $("#rollNo").prop("disabled", false).focus();
+    $(".form-control").not("#rollNo").addClass("disabled").prop("disabled", true);
+    $("#saveBtn, #updateBtn, #resetBtn").prop("disabled", true);
+}
+
+
+function checkPrimaryKey() {
+    const rollNo = $("#rollNo").val().trim();
+    if (!rollNo) {
+        alert("Roll Number is required.");
+        return;
+    }
+
+    const findReq = JSON.stringify({
+        token: token,
+        cmd: "FIND",
+        dbName: "newStudents",
+        rel: "newStudent-Rel",
+        jsonStr: { Roll_No: rollNo }
+    });
+
+    fetch(baseUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: findReq
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.data && data.data.length > 0) {
+                fillForm(data.data[0].record);
+                enableUpdateMode();
+            } else {
+                enableSaveMode();
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Error fetching data. Please try again.");
+            resetForm(); // Resets the form on error
+        });
+}
+
+
+
+    function fillForm(data) {
+        $("#rollNo").val(data.Roll_No).prop("disabled", true);
+        $("#fullName").val(data.Full_Name);
+        $("#class").val(data.Class);
+        $("#birthDate").val(data.Birth_Date);
+        $("#address").val(data.Address);
+        $("#enrollmentDate").val(data.Enrollment_Date);
+    }
+
+    function enableSaveMode() {
+        $(".form-control").not("#rollNo").removeClass("disabled").prop("disabled", false).first().focus();
+        $("#saveBtn, #resetBtn").prop("disabled", false);
+        $("#updateBtn").prop("disabled", true);
+    }
+
+    function enableUpdateMode() {
+        $(".form-control").not("#rollNo").removeClass("disabled").prop("disabled", false).first().focus();
+        $("#updateBtn, #resetBtn").prop("disabled", false);
+        $("#saveBtn").prop("disabled", true);
+    }
+
+    function saveRecord() {
+        const studentData = validateAndGetFormData();
+        if (!studentData) return;
+
+        const putReq = JSON.stringify({
+            token: token,
+            cmd: "PUT",
+            dbName: "newStudents",
+            rel: "newStudent-Rel",
+            jsonStr: studentData
+        });
+
+        sendRequest(putReq, "Record saved successfully.");
+    }
+
+    function updateRecord() {
+        const studentData = validateAndGetFormData();
+        if (!studentData) return;
+
+        const updateReq = JSON.stringify({
+            token: token,
+            cmd: "UPDATE",
+            dbName: "newStudents",
+            rel: "newStudent-Rel",
+            jsonStr: studentData
+        });
+
+        sendRequest(updateReq, "Record updated successfully.");
+    }
+
+    function validateAndGetFormData() {
+        const rollNo = $("#rollNo").val().trim();
+        const fullName = $("#fullName").val().trim();
+        const classField = $("#class").val().trim();
+        const birthDate = $("#birthDate").val().trim();
+        const address = $("#address").val().trim();
+        const enrollmentDate = $("#enrollmentDate").val().trim();
+
+        if (!rollNo || !fullName || !classField || !birthDate || !address || !enrollmentDate) {
+            alert("All fields are required.");
+            return null;
+        }
+
+        return { Roll_No: rollNo, Full_Name: fullName, Class: classField, Birth_Date: birthDate, Address: address, Enrollment_Date: enrollmentDate };
+    }
+
+    function sendRequest(reqBody, successMessage) {
+        fetch(baseUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: reqBody
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert(successMessage);
+                resetForm();
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Operation failed. Please try again.");
+            });
+    }
+
+    // Initialize the form
+    resetForm();
+</script>
+</body>
+</html>
